@@ -3,24 +3,22 @@ package de.displayware.app.boot
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import de.displayware.app.ui.PlayerActivity
 
-private const val TAG = "BootReceiver"
-
 /**
- * Receiver that listens for device boot completion and starts the app.
+ * BootReceiver fängt das System-Event BOOT_COMPLETED ab.
+ * Sobald das Gerät nach einem Neustart (z.B. nach einem Stromausfall) hochgefahren ist,
+ * wird automatisch die [PlayerActivity] im Vordergrund gestartet,
+ * um den Kiosk-Modus und die Werbefläche direkt wiederherzustellen.
  */
 class BootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        val action = intent.action
-        Log.d(TAG, "Received broadcast: $action")
-        
-        if (Intent.ACTION_BOOT_COMPLETED == action || 
-            "android.intent.action.QUICKBOOT_POWERON" == action) {
-            
+
+    override fun onReceive(context: Context, intent: Intent?) {
+        if (intent?.action == Intent.ACTION_BOOT_COMPLETED || 
+            intent?.action == "de.displayware.app.TEST_BOOT_RECEIVER") {
             val startIntent = Intent(context, PlayerActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
             context.startActivity(startIntent)
         }

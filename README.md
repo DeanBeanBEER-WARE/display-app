@@ -40,6 +40,12 @@ Projekt klonen und in das Verzeichnis wechseln:
 ./gradlew assembleDebug
 ```
 
+### Build und Neuinstallation der App
+Projekt klonen und in das Verzeichnis wechseln:
+```bash
+./gradlew :app:assembleDebug --no-daemon && adb shell am force-stop de.displayware.app && adb install -r app/build/outputs/apk/debug/app-debug.apk && adb shell monkey -p de.displayware.app 1
+```
+
 ### Installation auf Emulator/Gerät
 ```bash
 ./gradlew :app:assembleDebug --no-daemon   
@@ -54,6 +60,8 @@ adb shell am start -n de.displayware.app/.ui.PlayerActivity
 ### Neustart der App Einstellungen
 ```bash
 adb shell monkey -p de.displayware.app   
+
+adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -p de.displayware.app
 ```
 
 ### App beenden (via adb)
