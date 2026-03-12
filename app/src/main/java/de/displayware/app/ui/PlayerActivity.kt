@@ -6,9 +6,16 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import de.displayware.app.R
-import de.displayware.app.databinding.ActivityPlayerBinding
+import de.displayware.app.config.ConfigManager
+import de.displayware.app.player.VideoPlayerController
+import de.displayware.app.player.WebViewController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Main Activity of the Display App.
@@ -16,17 +23,55 @@ import de.displayware.app.databinding.ActivityPlayerBinding
  */
 class PlayerActivity : AppCompatActivity() {
 
-    // Note: ViewBinding would be nice, but for minimalism we can use findViewById 
-    // or just a simple binding-like approach if we add the dependency.
-    // Let's stick to findViewById for absolute minimalism or add ViewBinding to build.gradle.
-    
+    private lateinit var configManager: ConfigManager
+    private lateinit var videoController: VideoPlayerController
+    private lateinit var webController: WebViewController
+    private lateinit var progressBar: ProgressBar
+
+    // Change this to your actual config URL
+    private val configUrl = "https://raw.githubusercontent.com/DeanBeanBEER-WARE/display-app/main/example-config.json"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
         
         setupImmersiveMode()
         
-        // Initial setup of controllers will happen here in the next steps
+        progressBar = findViewById(R.id.progressBar)
+        configManager = ConfigManager(this)
+        videoController = VideoPlayerController(this, findViewById(R.id.videoPlayerView))
+        webController = WebViewController(findViewById(R.id.webView))
+
+        loadAndStart()
+    }
+
+    private fun loadAndStart() {
+        progressBar.visibility = View.VISIBLE
+        
+        lifecycleScope.launch {
+            val config = withContext(Dispatchers.IO) {
+                configManager.fetchConfig(configUrl)
+            }
+
+            if (config != null) {
+                when (config.mode) {
+                    "video" -> {
+                        val videoFile = withContext(Dispatchers.IO) {
+                            config.videoUrl?.let { configManager.downloadVideo(it) }
+                        }
+                        if (videoFile != null && videoFile.exists()) {
+                            webController.hide()
+                            videoController.playVideo(videoFile)
+                        }
+                    }
+                    "web" -> {
+                        videoController.stop()
+                        config.webUrl?.let { webController.loadUrl(it) }
+                    }
+                }
+            }
+            progressBar.visibility = View.GONE
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -36,9 +81,6 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Hides system bars and enables sticky immersive mode.
-     */
     private fun setupImmersiveMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false)
@@ -58,8 +100,11 @@ class PlayerActivity : AppCompatActivity() {
             @Suppress("DEPRECATION")
             window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         }
-        
-        // Keep screen on
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        videoController.release()
     }
 }
