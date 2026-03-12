@@ -28,7 +28,7 @@ class VideoPlayerController(
 
         // Low RAM configuration: Small buffers
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferMs(
+            .setBufferDurationsMs(
                 5000, // minBufferMs
                 15000, // maxBufferMs
                 1000, // bufferForPlaybackMs

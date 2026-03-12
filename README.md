@@ -50,6 +50,12 @@ Projekt klonen und in das Verzeichnis wechseln:
 adb shell am start -n de.displayware.app/.ui.PlayerActivity
 ```
 
+### App beenden (via adb)
+Da es sich um eine Kiosk-App handelt, lässt sie sich am besten über das Terminal beenden:
+```bash
+adb shell am force-stop de.displayware.app
+```
+
 ## Projektstruktur
 - `ui/`: `PlayerActivity` (Einstiegspunkt, Fullscreen-Logik).
 - `player/`: Controller für ExoPlayer (Video) und WebView.

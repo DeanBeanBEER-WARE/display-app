@@ -26,10 +26,10 @@ class WebViewController(private val webView: WebView) {
             useWideViewPort = true
             loadWithOverviewMode = true
             databaseEnabled = true
-            
-            // Performance / RAM
-            setAppCacheEnabled(true) // Deprecated but useful for Android 9
         }
+
+        // Fullscreen/Immersive-Verhalten (verhindert Bouncen)
+        webView.overScrollMode = WebView.OVER_SCROLL_NEVER
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
