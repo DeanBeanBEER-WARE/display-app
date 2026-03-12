@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "mode": "web",
+  "video_url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
+  "web_url": "https://github.com/DeanBeanBEER-WARE/display-app",
+  "reload_interval_sec": 0
+}
