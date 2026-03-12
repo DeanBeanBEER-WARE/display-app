@@ -58,12 +58,9 @@ class PlayerActivity : AppCompatActivity() {
             if (config != null) {
                 when (config.mode) {
                     "video" -> {
-                        val videoFile = withContext(Dispatchers.IO) {
-                            config.videoUrl?.let { configManager.downloadVideo(it) }
-                        }
-                        if (videoFile != null && videoFile.exists()) {
+                        config.videoUrl?.let { url ->
                             webController.hide()
-                            videoController.playVideo(videoFile)
+                            videoController.playVideo(url)
                         }
                     }
                     "web" -> {

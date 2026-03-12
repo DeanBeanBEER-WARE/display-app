@@ -48,12 +48,13 @@ class VideoPlayerController(
     }
 
     /**
-     * Starts playing a local video file.
+     * Starts playing a video from a remote URL or local path, muted and looped.
      */
-    fun playVideo(file: File) {
+    fun playVideo(url: String) {
         initialize()
-        val mediaItem = MediaItem.fromUri(Uri.fromFile(file))
+        val mediaItem = MediaItem.fromUri(Uri.parse(url))
         player?.setMediaItem(mediaItem)
+        player?.volume = 0f // Mute the video
         player?.prepare()
         playerView.visibility = View.VISIBLE
     }

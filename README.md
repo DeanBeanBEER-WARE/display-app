@@ -4,7 +4,7 @@ Eine minimalistische, robuste Android‑Kiosk‑App für Werbedisplays. Optimier
 
 ## Features
 - **Remote Config**: Lädt Konfiguration (JSON) von einer URL.
-- **Video Loop**: Spielt MP4-Videos im Endlos-Loop (lokales Caching).
+- **Video Loop**: Streamt MP4-Videos direkt von einer URL im Endlos-Loop (gemutet).
 - **Web View**: Zeigt Webseiten im Fullscreen an.
 - **Immersive Mode**: Versteckt Systembars (Status/Navigation).
 - **Auto-Start**: Startet automatisch nach System-Boot.
@@ -24,7 +24,7 @@ Die App erwartet ein JSON an der konfigurierten URL (siehe `PlayerActivity.kt` -
 ```
 
 - `mode`: Entweder `"video"` oder `"web"`.
-- `video_url`: URL zum MP4 (wird lokal unter `files/videos/current.mp4` gespeichert).
+- `video_url`: Absolute URL zum MP4-Stream (z.B. `http://.../video.mp4`). Wird live gestreamt.
 - `web_url`: URL zur Webseite für den Web-Modus.
 
 ## Setup & Build (macOS)
@@ -61,7 +61,7 @@ adb shell am start -n de.displayware.app/.ui.PlayerActivity
 ```bash
 adb shell monkey -p de.displayware.app   
 
-adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -p de.displayware.app
+adb shell am broadcast -a de.displayware.app.TEST_BOOT_RECEIVER -n de.displayware.app/.boot.BootReceiver
 ```
 
 ### App beenden (via adb)
