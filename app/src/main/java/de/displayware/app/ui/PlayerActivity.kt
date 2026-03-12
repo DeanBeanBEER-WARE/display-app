@@ -29,7 +29,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
 
     // Change this to your actual config URL
-    private val configUrl = "https://raw.githubusercontent.com/DeanBeanBEER-WARE/display-app/main/example-config.json"
+    private val configUrlBase = "http://159.195.69.206/config.json"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +50,9 @@ class PlayerActivity : AppCompatActivity() {
         
         lifecycleScope.launch {
             val config = withContext(Dispatchers.IO) {
-                configManager.fetchConfig(configUrl)
+                // Add timestamp cache-buster to ensure we always get the freshest config from VPS
+                val currentUrl = "$configUrlBase?t=${System.currentTimeMillis()}"
+                configManager.fetchConfig(currentUrl)
             }
 
             if (config != null) {

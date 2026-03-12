@@ -42,12 +42,18 @@ Projekt klonen und in das Verzeichnis wechseln:
 
 ### Installation auf Emulator/Gerät
 ```bash
-./gradlew installDebug
+./gradlew :app:assembleDebug --no-daemon   
+adb install -r app/build/outputs/apk/debug/app-debug.apk     
 ```
 
 ### App manuell starten (via adb)
 ```bash
 adb shell am start -n de.displayware.app/.ui.PlayerActivity
+```
+
+### Neustart der App Einstellungen
+```bash
+adb shell monkey -p de.displayware.app   
 ```
 
 ### App beenden (via adb)
