@@ -22,5 +22,6 @@ data class DisplayEntry(
     @Json(name = "mode") val mode: String,
     @Json(name = "video_url") val videoUrl: String?,
     @Json(name = "web_url") val webUrl: String?,
-    @Json(name = "reload_interval_sec") val reloadIntervalSec: Int
+    @Json(name = "reload_interval_sec") val reloadIntervalSec: Int,
+    @Json(name = "reset_token") val resetToken: String? = null
 )

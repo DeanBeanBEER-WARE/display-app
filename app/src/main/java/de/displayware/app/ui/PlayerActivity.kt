@@ -65,6 +65,8 @@ class PlayerActivity : AppCompatActivity() {
                 val entryToPlay = resolveDisplayAndMaybeStartSetup(configRoot)
                 
                 if (entryToPlay != null) {
+                    checkAndPerformResetIfNeeded(entryToPlay)
+                    
                     when (entryToPlay.mode) {
                         "video" -> {
                             entryToPlay.videoUrl?.let { url ->
@@ -116,6 +118,31 @@ class PlayerActivity : AppCompatActivity() {
 
         // Everything valid, return entry for playback
         return entry
+    }
+
+    private fun checkAndPerformResetIfNeeded(entry: DisplayEntry) {
+        val currentToken = entry.resetToken
+        if (currentToken != null) {
+            val lastToken = displayIdStore.getLastResetToken()
+            if (currentToken != lastToken) {
+                performConfigResetForDisplay(entry)
+            }
+        }
+    }
+
+    private fun performConfigResetForDisplay(entry: DisplayEntry) {
+        // Stop current media
+        videoController.stop()
+        webController.hide()
+        
+        // Update the token
+        displayIdStore.setLastResetToken(entry.resetToken)
+        
+        // Restart the activity to ensure a completely fresh state
+        val intent = Intent(this, PlayerActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+        finish()
     }
 
     private fun startDisplayIdSetup() {
