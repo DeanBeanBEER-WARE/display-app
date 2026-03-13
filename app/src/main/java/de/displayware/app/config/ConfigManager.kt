@@ -4,91 +4,84 @@ import android.content.Context
 import android.util.Log
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.File
-import java.io.IOException
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 
-private const val TAG = "ConfigManager"
-private const val PREFS_NAME = "display_config_prefs"
-private const val KEY_LAST_CONFIG = "last_valid_config"
-
-/**
- * Manages loading, parsing, and persisting the display configuration.
- */
 class ConfigManager(private val context: Context) {
 
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
-    private val adapter = moshi.adapter(DisplayConfig::class.java)
-    private val client = OkHttpClient()
+
+    private val adapter = moshi.adapter(DisplayConfigRoot::class.java)
+
+    companion object {
+        private const val PREFS_NAME = "config_prefs"
+        private const val KEY_LAST_CONFIG = "last_valid_config"
+        private const val TAG = "ConfigManager"
+    }
 
     /**
-     * Fetches the configuration from the remote URL.
-     * Fallback to local config if remote fails.
+     * Fetches the configuration from the given URL using HttpURLConnection. 
+     * If it fails, falls back to the last successfully parsed config from SharedPreferences.
      */
-    fun fetchConfig(url: String): DisplayConfig? {
-        val request = Request.Builder().url(url).build()
-
-        try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-                val body = response.body?.string() ?: return null
-                val config = adapter.fromJson(body)
-
-                if (config != null && config.isValid()) {
-                    saveLocalConfig(body)
-                    return config
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching config from $url, falling back to local: ${e.message}")
-        }
-
-        return getLocalConfig()
-    }
-
-    private fun saveLocalConfig(json: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_LAST_CONFIG, json).apply()
-    }
-
-    private fun getLocalConfig(): DisplayConfig? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val json = prefs.getString(KEY_LAST_CONFIG, null) ?: return null
+    fun fetchConfig(urlString: String): DisplayConfigRoot? {
         return try {
-            adapter.fromJson(json)
+            Log.d(TAG, "Fetching config from $urlString")
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                val jsonStr = reader.use { it.readText() }
+                
+                // Parse JSON string to Object
+                val parsedConfig = adapter.fromJson(jsonStr)
+                if (parsedConfig != null) {
+                    saveConfigToPrefs(jsonStr)
+                    return parsedConfig
+                }
+            } else {
+                Log.e(TAG, "Failed to fetch config, code: ${connection.responseCode}")
+            }
+            getFallbackConfig()
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing local config: ${e.message}")
+            Log.e(TAG, "Exception fetching config: ${e.message}")
+            getFallbackConfig()
+        }
+    }
+
+    /**
+     * Returns the matching display entry for a given display ID.
+     */
+    fun getEntryForDisplay(configRoot: DisplayConfigRoot, displayId: String): DisplayEntry? {
+        return configRoot.displays.find { it.id == displayId }
+    }
+
+    private fun saveConfigToPrefs(jsonStr: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_LAST_CONFIG, jsonStr).apply()
+    }
+
+    private fun getFallbackConfig(): DisplayConfigRoot? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val jsonStr = prefs.getString(KEY_LAST_CONFIG, null)
+        return if (jsonStr != null) {
+            try {
+                Log.d(TAG, "Using fallback config")
+                adapter.fromJson(jsonStr)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse fallback config: ${e.message}")
+                null
+            }
+        } else {
+            Log.e(TAG, "No fallback config found")
             null
         }
-    }
-
-    /**
-     * Downloads a video file to local storage.
-     */
-    fun downloadVideo(url: String): File? {
-        val videoFile = File(context.filesDir, "videos/current.mp4")
-        videoFile.parentFile?.mkdirs()
-
-        val request = Request.Builder().url(url).build()
-        try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return null
-                
-                response.body?.byteStream()?.use { input ->
-                    videoFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                return videoFile
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error downloading video: ${e.message}")
-            if (videoFile.exists()) return videoFile // Fallback to existing file
-        }
-        return null
     }
 }

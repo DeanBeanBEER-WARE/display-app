@@ -1,5 +1,6 @@
 package de.displayware.app.ui
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -11,6 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import de.displayware.app.R
 import de.displayware.app.config.ConfigManager
+import de.displayware.app.config.DisplayConfigRoot
+import de.displayware.app.config.DisplayEntry
+import de.displayware.app.config.DisplayIdStore
 import de.displayware.app.player.VideoPlayerController
 import de.displayware.app.player.WebViewController
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +28,7 @@ import kotlinx.coroutines.withContext
 class PlayerActivity : AppCompatActivity() {
 
     private lateinit var configManager: ConfigManager
+    private lateinit var displayIdStore: DisplayIdStore
     private lateinit var videoController: VideoPlayerController
     private lateinit var webController: WebViewController
     private lateinit var progressBar: ProgressBar
@@ -39,6 +44,7 @@ class PlayerActivity : AppCompatActivity() {
         
         progressBar = findViewById(R.id.progressBar)
         configManager = ConfigManager(this)
+        displayIdStore = DisplayIdStore(this)
         videoController = VideoPlayerController(this, findViewById(R.id.videoPlayerView))
         webController = WebViewController(findViewById(R.id.webView))
 
@@ -49,28 +55,72 @@ class PlayerActivity : AppCompatActivity() {
         progressBar.visibility = View.VISIBLE
         
         lifecycleScope.launch {
-            val config = withContext(Dispatchers.IO) {
+            val configRoot = withContext(Dispatchers.IO) {
                 // Add timestamp cache-buster to ensure we always get the freshest config from VPS
                 val currentUrl = "$configUrlBase?t=${System.currentTimeMillis()}"
                 configManager.fetchConfig(currentUrl)
             }
 
-            if (config != null) {
-                when (config.mode) {
-                    "video" -> {
-                        config.videoUrl?.let { url ->
-                            webController.hide()
-                            videoController.playVideo(url)
+            if (configRoot != null) {
+                val entryToPlay = resolveDisplayAndMaybeStartSetup(configRoot)
+                
+                if (entryToPlay != null) {
+                    when (entryToPlay.mode) {
+                        "video" -> {
+                            entryToPlay.videoUrl?.let { url ->
+                                webController.hide()
+                                videoController.playVideo(url)
+                            }
+                        }
+                        "web" -> {
+                            videoController.stop()
+                            entryToPlay.webUrl?.let { webController.loadUrl(it) }
                         }
                     }
-                    "web" -> {
-                        videoController.stop()
-                        config.webUrl?.let { webController.loadUrl(it) }
-                    }
+                }
+            } else {
+                // If config couldn't be loaded at all, we might want to still show setup if we have no ID
+                if (displayIdStore.getDisplayId() == null) {
+                    startDisplayIdSetup()
                 }
             }
             progressBar.visibility = View.GONE
         }
+    }
+
+    /**
+     * Resolves the current display ID against the config.
+     * Returns the [DisplayEntry] if it should be played, or null if Setup Activity was started.
+     */
+    private fun resolveDisplayAndMaybeStartSetup(configRoot: DisplayConfigRoot): DisplayEntry? {
+        val displayId = displayIdStore.getDisplayId()
+        
+        if (displayId == null) {
+            startDisplayIdSetup()
+            return null
+        }
+
+        val entry = configManager.getEntryForDisplay(configRoot, displayId)
+        
+        if (entry == null) {
+            // ID exists locally but not in config -> ID invalid, go to setup
+            startDisplayIdSetup()
+            return null
+        }
+
+        if (entry.requireIdSetup) {
+            // Config explicitly requested setup screen for this ID
+            startDisplayIdSetup()
+            return null
+        }
+
+        // Everything valid, return entry for playback
+        return entry
+    }
+
+    private fun startDisplayIdSetup() {
+        startActivity(Intent(this, DisplayIdSetupActivity::class.java))
+        finish()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

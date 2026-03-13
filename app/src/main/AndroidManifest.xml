@@ -25,6 +25,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.DisplayIdSetupActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|layoutDirection|screenLayout"
+            android:theme="@style/Theme.DisplayApp.Fullscreen" />
+
         <receiver
             android:name=".boot.BootReceiver"
             android:enabled="true"

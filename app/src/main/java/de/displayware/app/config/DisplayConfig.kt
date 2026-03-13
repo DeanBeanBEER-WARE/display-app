@@ -4,24 +4,23 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * Data class representing the display configuration.
+ * Root configuration representing the whole config.json on the server.
  */
 @JsonClass(generateAdapter = true)
-data class DisplayConfig(
+data class DisplayConfigRoot(
     @Json(name = "version") val version: Int,
-    @Json(name = "mode") val mode: String, // "video" or "web"
+    @Json(name = "displays") val displays: List<DisplayEntry>
+)
+
+/**
+ * Configuration for a specific display unit.
+ */
+@JsonClass(generateAdapter = true)
+data class DisplayEntry(
+    @Json(name = "id") val id: String,
+    @Json(name = "require_id_setup") val requireIdSetup: Boolean,
+    @Json(name = "mode") val mode: String,
     @Json(name = "video_url") val videoUrl: String?,
     @Json(name = "web_url") val webUrl: String?,
-    @Json(name = "reload_interval_sec") val reloadIntervalSec: Int = 0
-) {
-    /**
-     * Checks if the configuration is valid for the selected mode.
-     */
-    fun isValid(): Boolean {
-        return when (mode) {
-            "video" -> !videoUrl.isNullOrBlank()
-            "web" -> !webUrl.isNullOrBlank()
-            else -> false
-        }
-    }
-}
+    @Json(name = "reload_interval_sec") val reloadIntervalSec: Int
+)
