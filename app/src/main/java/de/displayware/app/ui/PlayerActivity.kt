@@ -85,9 +85,14 @@ class PlayerActivity : AppCompatActivity() {
                         }
                     }
                     
-                    if (entryToPlay.reloadIntervalSec > 0) {
-                        startConfigPolling(entryToPlay.reloadIntervalSec)
+                    val pollInterval = if (entryToPlay.reloadIntervalSec > 0) {
+                        entryToPlay.reloadIntervalSec
+                    } else {
+                        // Fallback polling of 60 seconds if 0 is provided, 
+                        // so we never completely lose touch with the server.
+                        60
                     }
+                    startConfigPolling(pollInterval)
                 }
             } else {
                 // If config couldn't be loaded at all, we might want to still show setup if we have no ID
@@ -166,7 +171,9 @@ class PlayerActivity : AppCompatActivity() {
                 if (configRoot != null) {
                     val entry = resolveDisplayAndMaybeStartSetup(configRoot)
                     if (entry != null) {
-                        checkAndPerformResetIfNeeded(entry)
+                        withContext(Dispatchers.Main) {
+                            checkAndPerformResetIfNeeded(entry)
+                        }
                     }
                 }
             }
