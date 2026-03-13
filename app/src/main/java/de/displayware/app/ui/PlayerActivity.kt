@@ -19,6 +19,9 @@ import de.displayware.app.player.VideoPlayerController
 import de.displayware.app.player.WebViewController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 /**
@@ -32,6 +35,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var videoController: VideoPlayerController
     private lateinit var webController: WebViewController
     private lateinit var progressBar: ProgressBar
+    
+    private var configPollingJob: Job? = null
 
     // Change this to your actual config URL
     private val configUrlBase = "http://159.195.69.206/config.json"
@@ -78,6 +83,10 @@ class PlayerActivity : AppCompatActivity() {
                             videoController.stop()
                             entryToPlay.webUrl?.let { webController.loadUrl(it) }
                         }
+                    }
+                    
+                    if (entryToPlay.reloadIntervalSec > 0) {
+                        startConfigPolling(entryToPlay.reloadIntervalSec)
                     }
                 }
             } else {
@@ -145,6 +154,25 @@ class PlayerActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun startConfigPolling(intervalSec: Int) {
+        configPollingJob?.cancel()
+        configPollingJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(intervalSec * 1000L)
+                val currentUrl = "$configUrlBase?t=${System.currentTimeMillis()}"
+                val configRoot = withContext(Dispatchers.IO) {
+                    configManager.fetchConfig(currentUrl)
+                }
+                if (configRoot != null) {
+                    val entry = resolveDisplayAndMaybeStartSetup(configRoot)
+                    if (entry != null) {
+                        checkAndPerformResetIfNeeded(entry)
+                    }
+                }
+            }
+        }
+    }
+
     private fun startDisplayIdSetup() {
         startActivity(Intent(this, DisplayIdSetupActivity::class.java))
         finish()
@@ -181,6 +209,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        configPollingJob?.cancel()
         videoController.release()
     }
 }
