@@ -89,6 +89,18 @@ Da es sich um eine Kiosk-App handelt, lässt sie sich am besten über das Termin
 adb shell am force-stop de.displayware.app
 ```
 
+### Kommandozyklus für App Update
+```bash
+scp /Volumes/Privat/VSC/display-app/app/build/outputs/apk/debug/app-debug.apk \
+signage@159.195.69.206:/home/signage/public_html/fdroid/repo/
+
+cd /home/signage/public_html/fdroid
+
+fdroid update
+
+http://159.195.69.206/fdroid/repo/
+```
+
 ## Projektstruktur
 - `ui/`: `PlayerActivity` (Einstiegspunkt, Fullscreen-Logik).
 - `player/`: Controller für ExoPlayer (Video) und WebView.

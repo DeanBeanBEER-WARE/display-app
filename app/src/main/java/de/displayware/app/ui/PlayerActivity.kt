@@ -15,6 +15,7 @@ import de.displayware.app.config.ConfigManager
 import de.displayware.app.config.DisplayConfigRoot
 import de.displayware.app.config.DisplayEntry
 import de.displayware.app.config.DisplayIdStore
+import de.displayware.app.player.VideoCacheManager
 import de.displayware.app.player.VideoPlayerController
 import de.displayware.app.player.WebViewController
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var configManager: ConfigManager
     private lateinit var displayIdStore: DisplayIdStore
     private lateinit var videoController: VideoPlayerController
+    private lateinit var videoCacheManager: VideoCacheManager
     private lateinit var webController: WebViewController
     private lateinit var progressBar: ProgressBar
     
@@ -50,6 +52,7 @@ class PlayerActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         configManager = ConfigManager(this)
         displayIdStore = DisplayIdStore(this)
+        videoCacheManager = VideoCacheManager(this)
         videoController = VideoPlayerController(this, findViewById(R.id.videoPlayerView))
         webController = WebViewController(findViewById(R.id.webView))
 
@@ -76,7 +79,15 @@ class PlayerActivity : AppCompatActivity() {
                         "video" -> {
                             entryToPlay.videoUrl?.let { url ->
                                 webController.hide()
-                                videoController.playVideo(url)
+                                val displayId = displayIdStore.getDisplayId() ?: "unknown"
+                                progressBar.visibility = View.VISIBLE
+                                val localFile = videoCacheManager.downloadVideo(url, displayId)
+                                if (localFile != null) {
+                                    videoController.playLocalVideoFile(localFile)
+                                } else {
+                                    videoController.stop()
+                                }
+                                progressBar.visibility = View.GONE
                             }
                         }
                         "web" -> {

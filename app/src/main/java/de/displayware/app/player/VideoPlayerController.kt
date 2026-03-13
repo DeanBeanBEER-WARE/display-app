@@ -60,6 +60,18 @@ class VideoPlayerController(
     }
 
     /**
+     * Starts playback of the given local video file in a seamless loop.
+     */
+    fun playLocalVideoFile(file: File) {
+        initialize()
+        val mediaItem = MediaItem.fromUri(Uri.fromFile(file))
+        player?.setMediaItem(mediaItem)
+        player?.volume = 0f // Mute the video
+        player?.prepare()
+        playerView.visibility = View.VISIBLE
+    }
+
+    /**
      * Stops and hides the video player.
      */
     fun stop() {
