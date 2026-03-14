@@ -11,7 +11,7 @@ android {
         applicationId = "de.displayware.app"
         minSdk = 23
         targetSdk = 34
-        versionCode = 2
+        versionCode = 3
         versionName = "1.1"
     }
 
